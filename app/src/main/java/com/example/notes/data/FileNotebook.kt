@@ -12,19 +12,23 @@ class FileNotebook(private val context: Context) {
         saveToFile()
     }
 
+    fun deleteNote(noteId: String): Boolean {
+        val isRemoved = notes.removeIf { it.uid == noteId }
+        if (isRemoved) saveToFile()
+        return isRemoved
+    }
+
     fun getNotes(): List<Note> = notes.toList()
 
     fun loadFromFile() {
         if (!notesFile.exists()) return
         
         try {
-            val json = notesFile.readText()
-            val jsonArray = JSONArray(json)
             notes.clear()
-            
-            for (i in 0 until jsonArray.length()) {
-                val note = Note.parse(jsonArray.getJSONObject(i))
-                notes.add(note)
+            JSONArray(notesFile.readText()).let { jsonArray ->
+                for (i in 0 until jsonArray.length()) {
+                    Note.parse(jsonArray.getJSONObject(i))?.let { notes.add(it) }
+                }
             }
         } catch (e: JSONException) {
         }
@@ -32,10 +36,11 @@ class FileNotebook(private val context: Context) {
 
     private fun saveToFile() {
         try {
-            val jsonArray = JSONArray().apply {
-                notes.forEach { put(it.json) }
-            }
-            notesFile.writeText(jsonArray.toString())
+            notesFile.writeText(
+                JSONArray().apply { 
+                    notes.forEach { put(it.json) } 
+                }.toString()
+            )
         } catch (e: Exception) {
         }
     }
